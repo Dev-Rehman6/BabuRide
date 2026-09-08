@@ -145,7 +145,7 @@ exports.updateCouponStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Coupon not found' });
     }
 
-    if (status === 'live') {
+    if (status === 'active' || status === 'live') {
       const passengers = await User.find({ role: 'passenger' }).limit(10);
       for (const p of passengers) {
         await createNotification(p._id, 'Coupon Activated!', `Coupon ${updatedCoupon.code} is now live. Use it to save on your rides.`, 'promo');

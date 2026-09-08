@@ -19,6 +19,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Route Mounting
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Babu Ride API is running successfully' });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/riders', riderRoutes);
