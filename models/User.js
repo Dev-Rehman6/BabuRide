@@ -39,6 +39,12 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Please specify user role'],
     default: 'passenger'
   },
+  adminRole: {
+    type: String,
+    enum: ['super_admin', 'ops_admin', 'finance_admin'],
+    required: function() { return this.role === 'admin'; },
+    default: 'super_admin'
+  },
   // Rider specific credentials
   vehicleId: {
     type: String,

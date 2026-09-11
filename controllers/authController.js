@@ -11,6 +11,7 @@ const formatUserPayload = (user) => {
     email: user.email,
     phone: user.phone,
     role: user.role,
+    adminRole: user.adminRole || null,
     profilePicture: user.profilePicture || null,
     ...(user.role === 'rider' && {
       vehicleId: user.vehicleId,
@@ -140,6 +141,7 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
+      console.log(`Login failed: No user found with email ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -149,6 +151,7 @@ exports.login = async (req, res) => {
     const isPasswordMatch = await user.comparePassword(password);
 
     if (!isPasswordMatch) {
+      console.log(`Login failed: Password mismatch for user ${email}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'

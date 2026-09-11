@@ -17,6 +17,7 @@ const verifyAdmin = async (req, res, next) => {
     }
 
     req.user = user;
+    req.adminRole = user.adminRole || 'super_admin';
     next();
   } catch (error) {
     res.status(401).json({ success: false, message: 'Invalid token' });

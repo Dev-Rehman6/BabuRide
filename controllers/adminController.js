@@ -625,3 +625,91 @@ exports.getAdminEarnings = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.getRevenueReport = async (req, res) => {
+  try {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+
+    const monthlyIncome = [];
+
+    for (let i = 0; i < 12; i++) {
+      const startOfMonth = new Date(currentYear, i, 1);
+      const endOfMonth = new Date(currentYear, i + 1, 0, 23, 59, 59);
+
+      const rides = await Ride.find({
+        status: 'completed',
+        completedAt: { $gte: startOfMonth, $lte: endOfMonth }
+      });
+
+      const income = rides.reduce((acc, r) => acc + (r.adminCommission || 0), 0);
+      monthlyIncome.push({
+        month: months[i],
+        income: Number(income.toFixed(2))
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        year: currentYear,
+        monthlyIncome
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// --- 7. ADMIN CREATION (Super Admin Only) ---
+exports.createAdmin = async (req, res) => {
+  try {
+    const { name, email, phone, password, confirmPassword, adminRole } = req.body;
+
+    if (!name || !email || !phone || !password || !confirmPassword || !adminRole) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields'
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passwords do not match'
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already registered'
+      });
+    }
+
+    const user = await User.create({
+      name,
+      email,
+      phone,
+      password,
+      role: 'admin',
+      adminRole
+    });
+
+    console.log(`Admin account created: ${user.email} with role ${user.adminRole}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin account created successfully',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        adminRole: user.adminRole
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
