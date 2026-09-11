@@ -52,16 +52,22 @@ router.use(verifyAdmin);
 // Super Admin & Ops Admin can see targets/coupons/pricing
 router.get('/targets', restrictTo('super_admin', 'ops_admin'));
 router.get('/admin/coupons', restrictTo('super_admin', 'ops_admin'));
-router.get('/admin/pricing', restrictTo('super_admin', 'ops_admin'));
 
-// Ops Admin only for writing/deleting
-router.post('/pricing', restrictTo('ops_admin'), setPricing);
+// Super Admin & Finance Admin can see pricing
+router.get('/admin/pricing', restrictTo('super_admin', 'finance_admin'));
+
+// Ops Admin only for writing/deleting coupons/targets
 router.post('/coupons', restrictTo('ops_admin'), createDiscountCoupon);
 router.patch('/coupons/:id/status', restrictTo('ops_admin'), updateCouponStatus);
 router.delete('/coupons/:id', restrictTo('ops_admin'), deleteCoupon);
 
-// Finance Admin only for users and payments
-router.get('/users', restrictTo('finance_admin'), getUsers);
+// Finance Admin only for pricing management
+router.post('/pricing', restrictTo('finance_admin'), setPricing);
+
+// Super Admin only for users
+router.get('/users', restrictTo('super_admin'), getUsers);
+
+// Finance Admin only for payments
 router.get('/rides', restrictTo('finance_admin'), getAllRides);
 
 // Super Admin only for earnings, reports and creating other admins
