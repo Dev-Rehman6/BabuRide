@@ -1,3 +1,4 @@
+const Joi = require('joi');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -21,55 +22,41 @@ const formatUserPayload = (user) => {
   };
 };
 
-// Generate JWT Token
+// Generate JWT Token with shortened expiration for security hardening
 const generateToken = (id, role) => {
   return jwt.sign({ id: id.toString(), role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d'
+    expiresIn: process.env.JWT_EXPIRE || '1h'
   });
 };
 
 // @desc    Register user (Rider or Passenger)
 // @route   POST /api/auth/signup
 exports.signup = async (req, res) => {
+  const schema = Joi.object({
+    name: Joi.string().required().trim(),
+    email: Joi.string().email().required().trim().lowercase(),
+    phone: Joi.string().required().trim(),
+    password: Joi.string().min(6).required(),
+    confirmPassword: Joi.string().valid(Joi.ref('password')).required().messages({ 'any.only': 'Passwords do not match' }),
+    role: Joi.string().valid('rider', 'passenger', 'admin').required(),
+    vehicleId: Joi.when('role', { is: 'rider', then: Joi.string().required(), otherwise: Joi.string().optional() }),
+    vehicleType: Joi.when('role', { is: 'rider', then: Joi.string().required(), otherwise: Joi.string().optional() }),
+    vehicleMake: Joi.string().optional(),
+    vehicleModel: Joi.string().optional(),
+    vehicleColor: Joi.string().optional(),
+    licenseNumber: Joi.string().optional()
+  });
+
+  const { error, value } = schema.validate(req.body, { abortEarly: false });
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details.map(d => d.message).join(', ')
+    });
+  }
+
   try {
-    const { name, email, phone, password, confirmPassword, role, vehicleId, vehicleType } = req.body;
-
-    if (!name || !email || !phone || !password || !confirmPassword || !role) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide all required fields'
-      });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match'
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters'
-      });
-    }
-
-    const validRoles = ['rider', 'passenger', 'admin'];
-
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role. Must be either rider, passenger, or admin"
-      });
-    }
-
-    if (role === 'rider' && (!vehicleId || !vehicleType)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Riders must provide vehicle ID and vehicle type'
-      });
-    }
+    const { name, email, phone, password, role, vehicleId, vehicleType } = value;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -99,10 +86,10 @@ exports.signup = async (req, res) => {
     if (role === 'rider') {
       userData.vehicleId = vehicleId;
       userData.vehicleType = vehicleType;
-      userData.vehicleMake = req.body.vehicleMake;
-      userData.vehicleModel = req.body.vehicleModel;
-      userData.vehicleColor = req.body.vehicleColor;
-      userData.licenseNumber = req.body.licenseNumber;
+      userData.vehicleMake = value.vehicleMake;
+      userData.vehicleModel = value.vehicleModel;
+      userData.vehicleColor = value.vehicleColor;
+      userData.licenseNumber = value.licenseNumber;
     }
 
     const user = await User.create(userData);
@@ -141,15 +128,21 @@ exports.signup = async (req, res) => {
 // @desc    Login user
 // @route   POST /api/auth/login
 exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const schema = Joi.object({
+    email: Joi.string().email().required().trim().lowercase(),
+    password: Joi.string().required()
+  });
 
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email and password'
-      });
-    }
+  const { error, value } = schema.validate(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details[0].message
+    });
+  }
+
+  try {
+    const { email, password } = value;
 
     const user = await User.findOne({ email }).select('+password');
 
