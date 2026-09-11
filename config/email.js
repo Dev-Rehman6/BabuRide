@@ -95,10 +95,35 @@ const sendComplaintResolvedEmail = async (userEmail, userName, complaintTitle, a
   return await transporter.sendMail(mailOptions);
 };
 
+// Function to send "Login Notification" email
+const sendLoginNotificationEmail = async (userEmail, userName, deviceDetails) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: userEmail,
+    subject: `New Login to Babu Ride`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #FFB703;">New Login Alert</h2>
+        <p>Hello <strong>${userName}</strong>,</p>
+        <p>Your account was just logged into from a new device.</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Device:</strong> ${deviceDetails}</p>
+          <p style="margin: 5px 0;"><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+        </div>
+        <p style="color: #666; font-size: 14px;">If this was you, you can ignore this email. If you don't recognize this activity, please reset your password immediately to secure your account.</p>
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+        <p style="color: #999; font-size: 12px;">Best regards,<br>Babu Ride Security Team</p>
+      </div>
+    `
+  };
+
+  return await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
-  // export existing email functions here (e.g. sendVerificationCode),
   sendComplaintInProgressEmail,
   sendComplaintResolvedEmail,
   sendEmail,
-  sendVerificationCode
+  sendVerificationCode,
+  sendLoginNotificationEmail
 };

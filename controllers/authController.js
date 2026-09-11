@@ -108,6 +108,19 @@ exports.signup = async (req, res) => {
     const user = await User.create(userData);
     const token = generateToken(user._id, user.role);
 
+    // Send Welcome Email
+    try {
+      const { sendEmail } = require('../config/email');
+      await sendEmail({
+        email: user.email,
+        subject: 'Welcome to Babu Ride!',
+        message: `Hello ${user.name},\n\nWelcome to Babu Ride! We are excited to have you as a ${user.role}.`,
+        html: `<h2>Welcome to Babu Ride, ${user.name}!</h2><p>You have successfully registered as a ${user.role}. We hope you enjoy your experience!</p>`
+      });
+    } catch (e) {
+      console.error('Welcome email failed:', e);
+    }
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
@@ -159,6 +172,16 @@ exports.login = async (req, res) => {
     }
 
     const token = generateToken(user._id, user.role);
+
+    // Send Login Notification Email
+    try {
+      const { sendLoginNotificationEmail } = require('../config/email');
+      const deviceDetails = req.headers['user-agent'] || 'Unknown Device';
+      // We don't await this so it doesn't slow down the login response
+      sendLoginNotificationEmail(user.email, user.name, deviceDetails);
+    } catch (e) {
+      console.error('Failed to send login notification email:', e);
+    }
 
     res.status(200).json({
       success: true,
